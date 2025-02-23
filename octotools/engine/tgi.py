@@ -36,13 +36,6 @@ class DefaultFormat(BaseModel):
     response: str
 
 
-# FIXME Define global constant for structured models
-STRUCTURED_MODELS = [
-    # "llama-3.3-70b",
-    "qwen-2.5-vl-72b",
-]
-
-
 class ChatTGI(EngineLM, CachedEngine):
     DEFAULT_SYSTEM_PROMPT = "You are a helpful, creative, and smart assistant."
 
@@ -51,7 +44,7 @@ class ChatTGI(EngineLM, CachedEngine):
         model_string=get_settings().default_llm,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         is_multimodal: bool = False,
-        enable_cache: bool = True,  # disable cache for now
+        enable_cache: bool = get_settings().cache_enabled,  # disable cache for now
         **kwargs,
     ):
         """
@@ -158,13 +151,13 @@ class ChatTGI(EngineLM, CachedEngine):
             cache_or_none = self._check_cache(cache_key)
             if cache_or_none is not None:
                 return cache_or_none
-
-        if self.model_string in STRUCTURED_MODELS and response_format is not None:
+        
+        if response_format is not None:
             response = self.client.chat.completions.create(
                 model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
-                    {"role": "user", "content": prompt},
+                    {"role": "user", "content": prompt + "\n\nJSON response format: " + response_format},
                 ],
                 frequency_penalty=0,
                 presence_penalty=0,
@@ -237,28 +230,12 @@ class ChatTGI(EngineLM, CachedEngine):
             if cache_or_none is not None:
                 return cache_or_none
 
-        if self.model_string in [
-            "o1",
-            "o1-mini",
-        ]:  # only supports base response currently
-            print(f"Max tokens: {max_tokens}")
-            response = self.client.chat.completions.create(
-                model=self.model_string,
-                messages=[
-                    {"role": "user", "content": formatted_content},
-                ],
-                max_completion_tokens=max_tokens,
-            )
-            if response.choices[0].finish_reason == "length":
-                response = "Token limit exceeded"
-            else:
-                response = response.choices[0].message.content
-        elif self.model_string in STRUCTURED_MODELS and response_format is not None:
+        if response_format is not None:
             response = self.client.chat.completions.create(
                 model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
-                    {"role": "user", "content": formatted_content},
+                    {"role": "user", "content": formatted_content + "\n\nJSON response format: " + response_format},
                 ],
                 frequency_penalty=0,
                 presence_penalty=0,

@@ -12,7 +12,7 @@ DATA_FILE="$TASK/data/data.json"
 LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 
-LM=${DEFAULT_LLM:-"gpt-4o-mini"}
+LLM=${DEFAULT_LLM:-"gpt-4o-mini"}
 
 ############
 

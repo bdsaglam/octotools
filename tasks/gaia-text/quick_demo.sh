@@ -11,7 +11,7 @@ LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 CACHE_DIR="$TASK/cache"
 
-LM=${DEFAULT_LLM:-"gpt-4o-mini"}
+LLM=${DEFAULT_LLM:-"gpt-4o-mini"}
 
 ENABLED_TOOLS="Python_Code_Generator_Tool,Google_Search_Tool,Wikipedia_Knowledge_Searcher_Tool,URL_Text_Extractor_Tool,Generalist_Solution_Generator_Tool"
 

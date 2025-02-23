@@ -36,24 +36,15 @@ class DefaultFormat(BaseModel):
     response: str
 
 
-# FIXME Define global constant for structured models
-OPENAI_STRUCTURED_MODELS = [
-    "gpt-4o",
-    "gpt-4o-2024-08-06",
-    "gpt-4o-mini",
-    "gpt-4o-mini-2024-07-18",
-]
-
-
 class _ChatOpenAI(EngineLM, CachedEngine):
     DEFAULT_SYSTEM_PROMPT = "You are a helpful, creative, and smart assistant."
 
     def __init__(
         self,
-        model_string=get_settings().default_vlm,
+        model_string=get_settings().default_llm,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
-        is_multimodal: bool = True,
-        enable_cache: bool = True,  # disable cache for now
+        is_multimodal: bool = False,
+        enable_cache: bool = get_settings().cache_enabled,  # disable cache for now
         **kwargs,
     ):
         """
@@ -166,7 +157,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             "o1-mini",
         ]:  # only supports base response currently
             response = self.client.beta.chat.completions.parse(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
@@ -176,12 +167,9 @@ class _ChatOpenAI(EngineLM, CachedEngine):
                 response = "Token limit exceeded"
             else:
                 response = response.choices[0].message.parsed
-        elif (
-            self.model_string in OPENAI_STRUCTURED_MODELS
-            and response_format is not None
-        ):
+        elif response_format is not None:
             response = self.client.beta.chat.completions.parse(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": prompt},
@@ -197,7 +185,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             response = response.choices[0].message.parsed
         else:
             response = self.client.chat.completions.create(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": prompt},
@@ -259,7 +247,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
         ]:  # only supports base response currently
             print(f"Max tokens: {max_tokens}")
             response = self.client.chat.completions.create(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "user", "content": formatted_content},
                 ],
@@ -269,12 +257,9 @@ class _ChatOpenAI(EngineLM, CachedEngine):
                 response_text = "Token limit exceeded"
             else:
                 response_text = response.choices[0].message.content
-        elif (
-            self.model_string in OPENAI_STRUCTURED_MODELS
-            and response_format is not None
-        ):
+        elif response_format is not None:
             response = self.client.beta.chat.completions.parse(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": formatted_content},
@@ -287,7 +272,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             response_text = response.choices[0].message.parsed
         else:
             response = self.client.chat.completions.create(
-                model="openai/" + self.model_string,
+                model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": formatted_content},
@@ -304,9 +289,9 @@ class _ChatOpenAI(EngineLM, CachedEngine):
 
 
 def ChatOpenAI(**kwargs):
-    model_string = kwargs.get("model_string", None)
-
-    if model_string and "gpt" in model_string or "o1" in model_string:
-        return _ChatOpenAI(**kwargs)
-    else:
-        return ChatTGI(**kwargs)
+    return _ChatOpenAI(**kwargs)
+    # provider = os.getenv("DEFAULT_LLM", "").split("/")[0].lower()
+    # if provider == "openai":
+    #     return _ChatOpenAI(**kwargs)
+    # else:
+    #     return ChatTGI(**kwargs)

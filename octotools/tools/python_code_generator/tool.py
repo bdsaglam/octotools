@@ -38,7 +38,7 @@ def timeout(seconds):
 class Python_Code_Generator_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string="gpt-4o-mini"):
+    def __init__(self, model_string):
         super().__init__(
             tool_name="Python_Code_Generator_Tool",
             tool_description="A tool that generates and executes simple Python code snippets for basic arithmetical calculations and math-related problems. The generated code runs in a highly restricted environment with only basic mathematical operations available.",
@@ -220,8 +220,7 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Example usage of the Python_Code_Generator_Tool
-    tool = Python_Code_Generator_Tool()
-    tool = Python_Code_Generator_Tool(model_string="gpt-4o-mini")
+    tool = Python_Code_Generator_Tool(model_string=os.getenv("DEFAULT_LLM"))
 
     # Get tool metadata
     metadata = tool.get_metadata()

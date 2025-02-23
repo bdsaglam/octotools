@@ -23,8 +23,6 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from octotools.engine.tgi import ChatTGI
-
 from .base import CachedEngine, EngineLM
 
 load_dotenv()
@@ -39,20 +37,15 @@ class DefaultFormat(BaseModel):
 
 
 # FIXME Define global constant for structured models
-OPENAI_STRUCTURED_MODELS = [
-    "gpt-4o",
-    "gpt-4o-2024-08-06",
-    "gpt-4o-mini",
-    "gpt-4o-mini-2024-07-18",
-]
+STRUCTURED_MODELS = ["llama-3.3-70b"]
 
 
-class _ChatOpenAI(EngineLM, CachedEngine):
+class ChatTGI(EngineLM, CachedEngine):
     DEFAULT_SYSTEM_PROMPT = "You are a helpful, creative, and smart assistant."
 
     def __init__(
         self,
-        model_string=os.getenv("DEFAULT_LLM"),
+        model_string="llama-3.3-70b",
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         is_multimodal: bool = False,
         enable_cache: bool = True,  # disable cache for now
@@ -163,26 +156,8 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             if cache_or_none is not None:
                 return cache_or_none
 
-        if self.model_string in [
-            "o1",
-            "o1-mini",
-        ]:  # only supports base response currently
-            response = self.client.beta.chat.completions.parse(
-                model=self.model_string,
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                max_completion_tokens=max_tokens,
-            )
-            if response.choices[0].finishreason == "length":
-                response = "Token limit exceeded"
-            else:
-                response = response.choices[0].message.parsed
-        elif (
-            self.model_string in OPENAI_STRUCTURED_MODELS
-            and response_format is not None
-        ):
-            response = self.client.beta.chat.completions.parse(
+        if self.model_string in STRUCTURED_MODELS and response_format is not None:
+            response = self.client.chat.completions.create(
                 model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
@@ -194,9 +169,13 @@ class _ChatOpenAI(EngineLM, CachedEngine):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
-                response_format=response_format,
+                response_format=translate_response_format(response_format),
             )
-            response = response.choices[0].message.parsed
+            content = response.choices[0].message.content
+            if isinstance(response_format, BaseModel):
+                response = response_format.model_validate_json(content)
+            else:
+                response = json.loads(content)
         else:
             response = self.client.chat.completions.create(
                 model=self.model_string,
@@ -271,10 +250,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
                 response_text = "Token limit exceeded"
             else:
                 response_text = response.choices[0].message.content
-        elif (
-            self.model_string in OPENAI_STRUCTURED_MODELS
-            and response_format is not None
-        ):
+        elif self.model_string in STRUCTURED_MODELS and response_format is not None:
             response = self.client.beta.chat.completions.parse(
                 model=self.model_string,
                 messages=[
@@ -305,13 +281,15 @@ class _ChatOpenAI(EngineLM, CachedEngine):
         return response_text
 
 
-def ChatOpenAI(
-        model_string=os.getenv("DEFAULT_LLM"),
-        **kwargs,
-):
-    if 'gpt' in model_string or 'o1' in model_string:
-        raise ValueError("OpenAI models are not supported.")
-        model_string = f"openai/{model_string}"
-        return _ChatOpenAI(model_string=model_string, **kwargs)
-    else:
-        return ChatTGI(model_string=model_string, **kwargs)
+def translate_response_format(response_format: BaseModel | dict | None) -> dict | None:
+    if response_format is None:
+        return None
+
+    if isinstance(response_format, BaseModel):
+        schema = response_format.model_json_schema()
+        return {"type": "json_object", "value": schema}
+
+    if isinstance(response_format, dict):
+        return response_format
+
+    raise ValueError(f"Unsupported response format type: {type(response_format)}")

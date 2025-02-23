@@ -221,7 +221,7 @@ if __name__ == "__main__":
     print("#"*50)
 
     # Initialize OpenAI engine
-    local_llm_engine = ChatOpenAI(model_string="gpt-4o-mini", is_multimodal=False, enable_cache=True)
+    local_llm_engine = ChatOpenAI(model_string=os.getenv("DEFAULT_SCORING_LLM"), is_multimodal=False, enable_cache=True)
     print(f"\nLocal OpenAI engine {local_llm_engine.model_string} initialized.\n")
 
     # Load the benchmark data

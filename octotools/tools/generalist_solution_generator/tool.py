@@ -5,7 +5,7 @@ from octotools.engine.openai import ChatOpenAI
 class Generalist_Solution_Generator_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string="gpt-4o-mini"):
+    def __init__(self, model_string):
         super().__init__(
             tool_name="Generalist_Solution_Generator_Tool",
             tool_description="A generalized tool that takes query from the user as prompt, and answers the question step by step to the best of its ability. It can also accept an image.",
@@ -91,9 +91,7 @@ if __name__ == "__main__":
     print(f"Script directory: {script_dir}")
 
     # Example usage of the Generalist_Tool
-    tool = Generalist_Solution_Generator_Tool()
-    # tool = Generalist_Solution_Generator_Tool(model_string="gpt-4o-mini")
-    # tool = Generalist_Solution_Generator_Tool(model_string="gpt-4o")
+    tool = Generalist_Solution_Generator_Tool(model_string=os.getenv("DEFAULT_LLM"))
 
     # Get tool metadata
     metadata = tool.get_metadata()

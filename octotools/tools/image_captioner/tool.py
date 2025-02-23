@@ -5,7 +5,7 @@ from octotools.engine.openai import ChatOpenAI
 class Image_Captioner_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string="gpt-4o-mini"):
+    def __init__(self, model_string):
         super().__init__(
             tool_name="Image_Captioner_Tool",
             tool_description="A tool that generates captions for images using OpenAI's multimodal model.",
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # Example usage of the Image_Captioner_Tool
     # tool = Image_Captioner_Tool()
-    tool = Image_Captioner_Tool(model_string="gpt-4o")
+    tool = Image_Captioner_Tool(model_string=os.getenv("DEFAULT_VLM"))
 
     # Get tool metadata
     metadata = tool.get_metadata()

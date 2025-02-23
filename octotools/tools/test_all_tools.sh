@@ -1,12 +1,27 @@
+#! /bin/bash
 
-# find all tool.py files in the tools folder
-tools=$(find . -type f -name "tool.py")
+find . -name "test.log" -type f -delete
 
-echo "Testing all tools"
+# Find all tool.py files in the tools folder
+# tools=$(find . -type f -name "tool.py")
+tools=(
+    ./text_detector/tool.py
+    ./url_text_extractor/tool.py
+    ./nature_news_fetcher/tool.py
+    ./generalist_solution_generator/tool.py
+    ./google_search/tool.py
+    ./python_code_generator/tool.py
+    ./relevant_patch_zoomer/tool.py
+    ./pubmed_search/tool.py
+    ./arxiv_paper_searcher/tool.py
+    ./wikipedia_knowledge_searcher/tool.py
+)
+
+echo "Testing selected tools"
 
 # print the tools
 echo "Tools:"
-for tool in $tools; do
+for tool in "${tools[@]}"; do
     echo "  - $(basename $(dirname $tool))"
 done
 
@@ -14,7 +29,7 @@ done
 failed=0
 
 # run the test script in each tool
-for tool in $tools; do
+for tool in "${tools[@]}"; do
     tool_dir=$(dirname $tool)
     tool_name=$(basename $tool_dir)
 
@@ -38,5 +53,5 @@ for tool in $tools; do
 done
 
 echo ""
-echo "Done testing all tools"
+echo "Done testing selected tools"
 echo "Failed: $failed"

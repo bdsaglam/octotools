@@ -11,7 +11,7 @@ LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 CACHE_DIR="$TASK/cache"
 
-LLM="gpt-4o"
+LLM="llama-3.3-70b"
 
 ENABLED_TOOLS="Python_Code_Generator_Tool,Generalist_Solution_Generator_Tool"
 

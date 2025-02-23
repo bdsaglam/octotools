@@ -9,9 +9,9 @@ from octotools.models.formatters import QueryAnalysis, NextStep, MemoryVerificat
 
 class Planner:
     def __init__(self, llm_engine_name: str, toolbox_metadata: dict = None, available_tools: List = None):
-        self.llm_engine_name = llm_engine_name
-        self.llm_engine_mm = ChatOpenAI(model_string=llm_engine_name, is_multimodal=True)
-        self.llm_engine = ChatOpenAI(model_string=llm_engine_name, is_multimodal=False)
+        self.llm_engine_name = llm_engine_name or os.getenv("DEFAULT_LLM")
+        self.llm_engine_mm = ChatOpenAI(model_string=self.llm_engine_name, is_multimodal=True)
+        self.llm_engine = ChatOpenAI(model_string=self.llm_engine_name, is_multimodal=False)
         self.toolbox_metadata = toolbox_metadata if toolbox_metadata is not None else {}
         self.available_tools = available_tools if available_tools is not None else []
 

@@ -7,6 +7,7 @@ import tqdm
 from pydantic import BaseModel
 
 from octotools.engine.openai import ChatOpenAI
+from octotools.settings import get_settings
 from tasks.utils import ResultAnalyzer
 
 
@@ -17,7 +18,7 @@ class CLEVRMathAnswerVerification(BaseModel):
 class ResultScorer:
     def __init__(self, llm_engine=None):
         self.llm_engine = llm_engine or ChatOpenAI(
-            model_string=os.getenv("DEFAULT_SCORING_LLM"),
+            model_string=get_settings().default_scoring_llm,
             is_multimodal=False,
             enable_cache=True,
         )

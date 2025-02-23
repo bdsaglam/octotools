@@ -15,7 +15,6 @@ from typing import List, Union
 import logfire
 import openai
 import platformdirs
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from tenacity import (
     retry,
@@ -24,10 +23,9 @@ from tenacity import (
 )
 
 from octotools.engine.tgi import ChatTGI
+from octotools.settings import get_settings
 
 from .base import CachedEngine, EngineLM
-
-load_dotenv()
 
 # Configure logfire
 logfire.configure()
@@ -52,9 +50,9 @@ class _ChatOpenAI(EngineLM, CachedEngine):
 
     def __init__(
         self,
-        model_string=os.getenv("DEFAULT_LLM"),
+        model_string=get_settings().default_vlm,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
-        is_multimodal: bool = False,
+        is_multimodal: bool = True,
         enable_cache: bool = True,  # disable cache for now
         **kwargs,
     ):
@@ -168,7 +166,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             "o1-mini",
         ]:  # only supports base response currently
             response = self.client.beta.chat.completions.parse(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
@@ -183,7 +181,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             and response_format is not None
         ):
             response = self.client.beta.chat.completions.parse(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": prompt},
@@ -199,7 +197,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             response = response.choices[0].message.parsed
         else:
             response = self.client.chat.completions.create(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": prompt},
@@ -261,7 +259,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
         ]:  # only supports base response currently
             print(f"Max tokens: {max_tokens}")
             response = self.client.chat.completions.create(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "user", "content": formatted_content},
                 ],
@@ -276,7 +274,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             and response_format is not None
         ):
             response = self.client.beta.chat.completions.parse(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": formatted_content},
@@ -289,7 +287,7 @@ class _ChatOpenAI(EngineLM, CachedEngine):
             response_text = response.choices[0].message.parsed
         else:
             response = self.client.chat.completions.create(
-                model=self.model_string,
+                model="openai/" + self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": formatted_content},
@@ -305,13 +303,10 @@ class _ChatOpenAI(EngineLM, CachedEngine):
         return response_text
 
 
-def ChatOpenAI(
-        model_string=os.getenv("DEFAULT_LLM"),
-        **kwargs,
-):
-    if 'gpt' in model_string or 'o1' in model_string:
-        raise ValueError("OpenAI models are not supported.")
-        model_string = f"openai/{model_string}"
-        return _ChatOpenAI(model_string=model_string, **kwargs)
+def ChatOpenAI(**kwargs):
+    model_string = kwargs.get("model_string", None)
+
+    if model_string and "gpt" in model_string or "o1" in model_string:
+        return _ChatOpenAI(**kwargs)
     else:
-        return ChatTGI(model_string=model_string, **kwargs)
+        return ChatTGI(**kwargs)

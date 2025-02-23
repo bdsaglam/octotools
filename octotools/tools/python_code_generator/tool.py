@@ -1,21 +1,24 @@
 # octotools/tools/python_code_generator/tool.py
 
+import contextlib
 import os
 import re
-import sys
-from io import StringIO
-import contextlib
-
-
-from octotools.tools.base import BaseTool
-from octotools.engine.openai import ChatOpenAI
-
 import signal
+import sys
 from contextlib import contextmanager
+from io import StringIO
+
+from octotools.engine.openai import ChatOpenAI
+from octotools.tools.base import BaseTool
+from octotools.settings import get_settings
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # Custom exception for code execution timeout
 class TimeoutException(Exception):
     pass
+
 
 # Custom context manager for code execution timeout
 @contextmanager
@@ -26,7 +29,7 @@ def timeout(seconds):
     # Set the timeout handler
     original_handler = signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(seconds)
-    
+
     try:
         yield
     finally:
@@ -38,29 +41,30 @@ def timeout(seconds):
 class Python_Code_Generator_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string):
+    def __init__(self, model_string=get_settings().default_llm):
         super().__init__(
             tool_name="Python_Code_Generator_Tool",
             tool_description="A tool that generates and executes simple Python code snippets for basic arithmetical calculations and math-related problems. The generated code runs in a highly restricted environment with only basic mathematical operations available.",
             tool_version="1.0.0",
             input_types={
-                "query": "str - A clear, specific description of the arithmetic calculation or math problem to be solved, including any necessary numerical inputs."},
+                "query": "str - A clear, specific description of the arithmetic calculation or math problem to be solved, including any necessary numerical inputs."
+            },
             output_type="dict - A dictionary containing the generated code, calculation result, and any error messages.",
             demo_commands=[
                 {
                     "command": 'execution = tool.execute(query="Calculate the factorial of 5")',
-                    "description": "Generate a Python code snippet to calculate the factorial of 5."
+                    "description": "Generate a Python code snippet to calculate the factorial of 5.",
                 },
                 {
                     "command": 'execution = tool.execute(query="Find the sum of prime numbers up to 50")',
-                    "description": "Generate a Python code snippet to find the sum of prime numbers up to 50."
+                    "description": "Generate a Python code snippet to find the sum of prime numbers up to 50.",
                 },
                 {
                     "command": 'query="Given the list [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], calculate the sum of squares of odd numbers"\nexecution = tool.execute(query=query)',
-                    "description": "Generate a Python function for a specific mathematical operation on a given list of numbers."
+                    "description": "Generate a Python function for a specific mathematical operation on a given list of numbers.",
                 },
             ],
-            user_metadata = {
+            user_metadata={
                 "limitations": [
                     "Restricted to basic Python arithmetic operations and built-in mathematical functions.",
                     "Cannot use any external libraries or modules, including those in the Python standard library.",
@@ -70,7 +74,7 @@ class Python_Code_Generator_Tool(BaseTool):
                     "Cannot use 'import' statements.",
                     "All calculations must be self-contained within a single function or script.",
                     "Input must be provided directly in the query string.",
-                    "Output is limited to numerical results or simple lists/tuples of numbers."
+                    "Output is limited to numerical results or simple lists/tuples of numbers.",
                 ],
                 "best_practices": [
                     "Provide clear and specific queries that describe the desired mathematical calculation.",
@@ -78,12 +82,18 @@ class Python_Code_Generator_Tool(BaseTool):
                     "Keep tasks focused on basic arithmetic, algebraic calculations, or simple mathematical algorithms.",
                     "Ensure all required numerical data is included in the query.",
                     "Verify that the query only involves mathematical operations and does not require any data processing or complex algorithms.",
-                    "Review generated code to ensure it only uses basic Python arithmetic operations and built-in math functions."
-                ]
-            }
+                    "Review generated code to ensure it only uses basic Python arithmetic operations and built-in math functions.",
+                ],
+            },
         )
-        print(f"\nInitializing Python_Code_Generator_Tool with model_string: {model_string}")
-        self.llm_engine = ChatOpenAI(model_string=model_string, is_multimodal=False) if model_string else None
+        print(
+            f"\nInitializing Python_Code_Generator_Tool with model_string: {model_string}"
+        )
+        self.llm_engine = (
+            ChatOpenAI(model_string=model_string, is_multimodal=False)
+            if model_string
+            else None
+        )
 
     @staticmethod
     def preprocess_code(code):
@@ -126,12 +136,12 @@ class Python_Code_Generator_Tool(BaseTool):
             dict: A dictionary containing the printed output and local variables.
         """
         # Check for dangerous functions and remove them
-        dangerous_functions = ['exit', 'quit', 'sys.exit']
+        dangerous_functions = ["exit", "quit", "sys.exit"]
         for func in dangerous_functions:
             if func in code:
                 print(f"Warning: Removing unsafe '{func}' call from code")
                 # Use regex to remove function calls with any arguments
-                code = re.sub(rf'{func}\s*\([^)]*\)', 'break', code)
+                code = re.sub(rf"{func}\s*\([^)]*\)", "break", code)
 
         try:
             execution_code = self.preprocess_code(code)
@@ -146,7 +156,7 @@ class Python_Code_Generator_Tool(BaseTool):
                 except Exception as e:
                     print(f"Error executing code: {e}")
                     return {"error": str(e)}
-                
+
             # Capture the output and local variables
             local_vars = {}
             with self.capture_output() as output:
@@ -158,11 +168,14 @@ class Python_Code_Generator_Tool(BaseTool):
             only the variables used in the code are returned, 
             excluding built-in variables (which start with '__') and imported modules.
             """
-            used_vars = {k: v for k, v in local_vars.items() 
-                         if not k.startswith('__') and not isinstance(v, type(sys))}
-            
+            used_vars = {
+                k: v
+                for k, v in local_vars.items()
+                if not k.startswith("__") and not isinstance(v, type(sys))
+            }
+
             return {"printed_output": printed_output, "variables": used_vars}
-        
+
         except Exception as e:
             print(f"Error executing code: {e}")
             return {"error": str(e)}
@@ -179,7 +192,9 @@ class Python_Code_Generator_Tool(BaseTool):
         """
 
         if not self.llm_engine:
-            raise ValueError("LLM engine not initialized. Please provide a valid model_string when initializing the tool.")
+            raise ValueError(
+                "LLM engine not initialized. Please provide a valid model_string when initializing the tool."
+            )
 
         task_description = """
         Given a query, generate a Python code snippet that performs the specified operation on the provided data. Please think step by step. Ensure to break down the process into clear, logical steps. Make sure to print the final result in the generated code snippet with a descriptive message explaining what the output represents. The final output should be presented in the following format:
@@ -203,7 +218,9 @@ class Python_Code_Generator_Tool(BaseTool):
             dict: A dictionary containing the tool's metadata.
         """
         metadata = super().get_metadata()
-        metadata["require_llm_engine"] = self.require_llm_engine # NOTE: can be removed if not needed
+        metadata["require_llm_engine"] = (
+            self.require_llm_engine
+        )  # NOTE: can be removed if not needed
         return metadata
 
 
@@ -220,7 +237,7 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Example usage of the Python_Code_Generator_Tool
-    tool = Python_Code_Generator_Tool(model_string=os.getenv("DEFAULT_LLM"))
+    tool = Python_Code_Generator_Tool(model_string=get_settings().default_llm)
 
     # Get tool metadata
     metadata = tool.get_metadata()

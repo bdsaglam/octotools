@@ -5,13 +5,14 @@ import argparse
 import tqdm
 
 from pydantic import BaseModel
+from octotools.settings import get_settings
 from octotools.engine.openai import ChatOpenAI
 
 from tasks.utils import ResultAnalyzer
 
 class ResultScorer:
     def __init__(self, llm_engine=None):
-        self.llm_engine = llm_engine or ChatOpenAI(model_string=os.getenv("DEFAULT_SCORING_LLM"), is_multimodal=False, enable_cache=True)
+        self.llm_engine = llm_engine or ChatOpenAI(model_string=get_settings().default_scoring_llm, is_multimodal=False, enable_cache=True)
         print(f"\nLocal OpenAI engine {self.llm_engine.model_string} initialized.\n")
 
     @staticmethod

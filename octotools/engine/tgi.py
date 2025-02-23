@@ -10,12 +10,11 @@ except ImportError:
 import base64
 import json
 import os
-from typing import List, Union
+from typing import Any, List, Union
 
 import logfire
 import openai
 import platformdirs
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from tenacity import (
     retry,
@@ -23,9 +22,10 @@ from tenacity import (
     wait_random_exponential,
 )
 
+from octotools.settings import get_settings
+
 from .base import CachedEngine, EngineLM
 
-load_dotenv()
 
 # Configure logfire
 logfire.configure()
@@ -37,7 +37,10 @@ class DefaultFormat(BaseModel):
 
 
 # FIXME Define global constant for structured models
-STRUCTURED_MODELS = ["llama-3.3-70b"]
+STRUCTURED_MODELS = [
+    # "llama-3.3-70b",
+    "qwen-2.5-vl-72b",
+]
 
 
 class ChatTGI(EngineLM, CachedEngine):
@@ -45,7 +48,7 @@ class ChatTGI(EngineLM, CachedEngine):
 
     def __init__(
         self,
-        model_string="llama-3.3-70b",
+        model_string=get_settings().default_llm,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         is_multimodal: bool = False,
         enable_cache: bool = True,  # disable cache for now
@@ -172,7 +175,7 @@ class ChatTGI(EngineLM, CachedEngine):
                 response_format=translate_response_format(response_format),
             )
             content = response.choices[0].message.content
-            if isinstance(response_format, BaseModel):
+            if is_obj_pydantic(response_format):
                 response = response_format.model_validate_json(content)
             else:
                 response = json.loads(content)
@@ -247,22 +250,29 @@ class ChatTGI(EngineLM, CachedEngine):
                 max_completion_tokens=max_tokens,
             )
             if response.choices[0].finish_reason == "length":
-                response_text = "Token limit exceeded"
+                response = "Token limit exceeded"
             else:
-                response_text = response.choices[0].message.content
+                response = response.choices[0].message.content
         elif self.model_string in STRUCTURED_MODELS and response_format is not None:
-            response = self.client.beta.chat.completions.parse(
+            response = self.client.chat.completions.create(
                 model=self.model_string,
                 messages=[
                     {"role": "system", "content": sys_prompt_arg},
                     {"role": "user", "content": formatted_content},
                 ],
+                frequency_penalty=0,
+                presence_penalty=0,
+                stop=None,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
-                response_format=response_format,
+                response_format=translate_response_format(response_format),
             )
-            response_text = response.choices[0].message.parsed
+            content = response.choices[0].message.content
+            if is_obj_pydantic(response_format):
+                response = response_format.model_validate_json(content)
+            else:
+                response = json.loads(content)
         else:
             response = self.client.chat.completions.create(
                 model=self.model_string,
@@ -274,18 +284,22 @@ class ChatTGI(EngineLM, CachedEngine):
                 max_tokens=max_tokens,
                 top_p=top_p,
             )
-            response_text = response.choices[0].message.content
+            response = response.choices[0].message.content
 
         if self.enable_cache:
-            self._save_cache(cache_key, response_text)
-        return response_text
+            self._save_cache(cache_key, response)
+        return response
+
+
+def is_obj_pydantic(obj: Any) -> bool:
+    return hasattr(obj, "model_json_schema")
 
 
 def translate_response_format(response_format: BaseModel | dict | None) -> dict | None:
     if response_format is None:
         return None
 
-    if isinstance(response_format, BaseModel):
+    if is_obj_pydantic(response_format):
         schema = response_format.model_json_schema()
         return {"type": "json_object", "value": schema}
 

@@ -132,7 +132,7 @@ Using [CLEVR-Math](https://huggingface.co/datasets/dali-does/clevr-math) as an e
 cd octotools/tasks
 
 # Run inference from clevr-math using GPT-4 only
-source clevr-math/run_gpt4o.sh
+source clevr-math/run_wo_tool.sh.sh
 
 # Run inference from clevr-math using the base tool
 source clevr-math/run_octotool_base.sh

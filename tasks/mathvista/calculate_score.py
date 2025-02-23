@@ -14,6 +14,7 @@ except:
 from tasks.utils import ResultAnalyzer
 
 from octotools.engine.openai import ChatOpenAI
+from octotools.settings import get_settings
 
 # Demos (pids = 852,  104,  824,  506,  540) from MathVista
 demo_prompt = """
@@ -221,7 +222,7 @@ if __name__ == "__main__":
     print("#"*50)
 
     # Initialize OpenAI engine
-    local_llm_engine = ChatOpenAI(model_string=os.getenv("DEFAULT_SCORING_LLM"), is_multimodal=False, enable_cache=True)
+    local_llm_engine = ChatOpenAI(model_string=get_settings().default_scoring_llm, is_multimodal=False, enable_cache=True)
     print(f"\nLocal OpenAI engine {local_llm_engine.model_string} initialized.\n")
 
     # Load the benchmark data

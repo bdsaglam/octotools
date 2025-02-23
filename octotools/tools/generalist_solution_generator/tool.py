@@ -1,11 +1,12 @@
 import os
 from octotools.tools.base import BaseTool
 from octotools.engine.openai import ChatOpenAI
+from octotools.settings import get_settings
 
 class Generalist_Solution_Generator_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string):
+    def __init__(self, model_string=get_settings().default_vlm):
         super().__init__(
             tool_name="Generalist_Solution_Generator_Tool",
             tool_description="A generalized tool that takes query from the user as prompt, and answers the question step by step to the best of its ability. It can also accept an image.",
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     print(f"Script directory: {script_dir}")
 
     # Example usage of the Generalist_Tool
-    tool = Generalist_Solution_Generator_Tool(model_string=os.getenv("DEFAULT_LLM"))
+    tool = Generalist_Solution_Generator_Tool(model_string=get_settings().default_llm)
 
     # Get tool metadata
     metadata = tool.get_metadata()

@@ -7,12 +7,12 @@ PROJECT_DIR="./"
 LABEL="gpt4o_baseline"
 
 THREADS=8
-TASK="gaia-text"
+TASK="medqa"
 DATA_FILE="$TASK/data/data.json"
 LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 
-LLM="llama-3.3-70b"
+LM=${DEFAULT_LLM:-"gpt-4o-mini"}
 
 ############
 
@@ -20,7 +20,7 @@ cd $PROJECT_DIR
 mkdir -p $LOG_DIR
 
 # Define the array of specific indices
-indices=($(seq 0 7))
+indices=($(seq 100 107))
 
 # Skip indices if the output file already exists
 new_indices=()
@@ -63,15 +63,3 @@ else
     parallel -j $THREADS run_task ::: "${indices[@]}"
     echo "All tasks completed."
 fi
-
-############ [2] Calculate Scores ############
-cd $PROJECT_DIR
-
-RESPONSE_TYPE="base_response"
-python $TASK/calculate_score.py \
---data_file $DATA_FILE \
---result_dir $OUT_DIR \
---response_type $RESPONSE_TYPE \
---output_file "final_results_$RESPONSE_TYPE.json" \
-| tee "$OUT_DIR/final_score_$RESPONSE_TYPE.log"
-

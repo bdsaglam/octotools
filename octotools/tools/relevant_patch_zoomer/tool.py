@@ -3,6 +3,7 @@ import cv2
 from pydantic import BaseModel
 from octotools.tools.base import BaseTool
 from octotools.engine.openai import ChatOpenAI
+from octotools.settings import get_settings
 
 class PatchZoomerResponse(BaseModel):
     analysis: str
@@ -11,7 +12,7 @@ class PatchZoomerResponse(BaseModel):
 class Relevant_Patch_Zoomer_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string):
+    def __init__(self, model_string=get_settings().default_vlm):
         super().__init__(
             tool_name="Relevant_Patch_Zoomer_Tool",
             tool_description="A tool that analyzes an image, divides it into 5 regions (4 quarters + center), and identifies the most relevant patches based on a question. The returned patches are zoomed in by a factor of 2.",
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Example usage of the Relevant_Patch_Zoomer_Tool
-    tool = Relevant_Patch_Zoomer_Tool(model_string=os.getenv("DEFAULT_LLM"))
+    tool = Relevant_Patch_Zoomer_Tool(model_string=get_settings().default_llm)
     tool.set_custom_output_dir(f"{script_dir}/zoomed_patches")
 
     # Get tool metadata

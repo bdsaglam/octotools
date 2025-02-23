@@ -1,11 +1,14 @@
 import os
-from octotools.tools.base import BaseTool
+
 from octotools.engine.openai import ChatOpenAI
+from octotools.tools.base import BaseTool
+from octotools.settings import get_settings
+
 
 class Image_Captioner_Tool(BaseTool):
     require_llm_engine = True
 
-    def __init__(self, model_string):
+    def __init__(self, model_string=get_settings().default_vlm):
         super().__init__(
             tool_name="Image_Captioner_Tool",
             tool_description="A tool that generates captions for images using OpenAI's multimodal model.",
@@ -18,30 +21,34 @@ class Image_Captioner_Tool(BaseTool):
             demo_commands=[
                 {
                     "command": 'execution = tool.execute(image="path/to/image.png")',
-                    "description": "Generate a caption for an image using the default prompt and model."
+                    "description": "Generate a caption for an image using the default prompt and model.",
                 },
                 {
                     "command": 'execution = tool.execute(image="path/to/image.png", prompt="Explain the mood of this scene.")',
-                    "description": "Generate a caption focusing on the mood using a specific prompt and model."
-                }
+                    "description": "Generate a caption focusing on the mood using a specific prompt and model.",
+                },
             ],
-            user_metadata = {
+            user_metadata={
                 "limitation": "The Image_Captioner_Tool provides general image descriptions but has limitations: 1) May make mistakes in complex scenes, counting, attribute detection, and understanding object relationships. 2) Might not generate comprehensive captions, especially for images with multiple objects or abstract concepts. 3) Performance varies with image complexity. 4) Struggles with culturally specific or domain-specific content. 5) May overlook details or misinterpret object relationships. For precise descriptions, consider: using it with other tools for context/verification, as an initial step before refinement, or in multi-step processes for ambiguity resolution. Verify critical information with specialized tools or human expertise when necessary."
             },
         )
         print(f"\nInitializing Image Captioner Tool with model: {model_string}")
-        self.llm_engine = ChatOpenAI(model_string=model_string, is_multimodal=True) if model_string else None
+        self.llm_engine = (
+            ChatOpenAI(model_string=model_string, is_multimodal=True)
+            if model_string
+            else None
+        )
 
     def execute(self, image, prompt="Describe this image in detail."):
         try:
             if not self.llm_engine:
                 return "Error: LLM engine not initialized. Please provide a valid model_string."
-                
+
             input_data = [prompt]
-            
+
             if image and os.path.isfile(image):
                 try:
-                    with open(image, 'rb') as file:
+                    with open(image, "rb") as file:
                         image_bytes = file.read()
                     input_data.append(image_bytes)
                 except Exception as e:
@@ -56,8 +63,11 @@ class Image_Captioner_Tool(BaseTool):
 
     def get_metadata(self):
         metadata = super().get_metadata()
-        metadata['require_llm_engine'] = self.require_llm_engine # NOTE: can be removed if not needed
+        metadata["require_llm_engine"] = (
+            self.require_llm_engine
+        )  # NOTE: can be removed if not needed
         return metadata
+
 
 if __name__ == "__main__":
     # Test command:
@@ -75,7 +85,7 @@ if __name__ == "__main__":
 
     # Example usage of the Image_Captioner_Tool
     # tool = Image_Captioner_Tool()
-    tool = Image_Captioner_Tool(model_string=os.getenv("DEFAULT_VLM"))
+    tool = Image_Captioner_Tool(model_string=get_settings().default_vlm)
 
     # Get tool metadata
     metadata = tool.get_metadata()
@@ -89,8 +99,8 @@ if __name__ == "__main__":
     try:
         execution = tool.execute(image=image_path)
         print("Generated Caption:")
-        print(json.dumps(execution, indent=4)) 
-    except Exception as e: 
+        print(json.dumps(execution, indent=4))
+    except Exception as e:
         print(f"Execution failed: {e}")
 
     print("Done!")

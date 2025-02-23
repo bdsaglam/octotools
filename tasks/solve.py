@@ -7,6 +7,8 @@ from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # Add the project root to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -17,8 +19,7 @@ from octotools.models.initializer import Initializer
 from octotools.models.memory import Memory
 from octotools.models.planner import Planner
 from octotools.models.utlis import make_json_serializable_truncated
-
-load_dotenv()
+from octotools.settings import get_settings
 
 
 class Solver:
@@ -268,6 +269,7 @@ class Solver:
                 stop_verification = self.planner.verificate_context(
                     question, image_path, query_analysis, self.memory
                 )
+                
                 conclusion = self.planner.extract_conclusion(stop_verification)
 
                 if self.verbose:
@@ -353,7 +355,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--llm_engine_name",
-        default=os.getenv("DEFAULT_LLM"),
+        default=get_settings().default_llm,
         help="LLM engine name.",
     )
     parser.add_argument(

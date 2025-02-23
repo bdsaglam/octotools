@@ -5,13 +5,13 @@ PROJECT_DIR="./"
 
 LABEL="quick_demo"
 
-TASK="gpa"
+TASK="gpqa"
 DATA_FILE="$TASK/data/data.json"
 LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 CACHE_DIR="$TASK/cache"
 
-LLM="llama-3.3-70b"
+LM=${DEFAULT_LLM:-"gpt-4o-mini"}
 
 ENABLED_TOOLS="Generalist_Solution_Generator_Tool"
 

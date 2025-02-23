@@ -7,12 +7,12 @@ PROJECT_DIR="./"
 LABEL="gpt4o_baseline"
 
 THREADS=8
-TASK="medqa"
+TASK="gpqa"
 DATA_FILE="$TASK/data/data.json"
 LOG_DIR="$TASK/logs/$LABEL"
 OUT_DIR="$TASK/results/$LABEL"
 
-LLM="llama-3.3-70b"
+LM=${DEFAULT_LLM:-"gpt-4o-mini"}
 
 ############
 
